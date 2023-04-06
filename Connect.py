@@ -1,7 +1,7 @@
 import psycopg2 as ps
 from configparser import ConfigParser
 
-def config(filename="Python_Projects\SCDashBoard\database.ini", section="postgresql"):
+def config(filename="SCDashBoard\database.ini", section="postgresql"):
     """
     It reads a configuration file and returns a dictionary of the parameters in the specified section
     

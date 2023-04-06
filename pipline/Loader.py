@@ -1,5 +1,5 @@
 import Connect as co
-
+from psycopg2 import errors as e
 # It takes a list of dictionaries and inserts the data into a PostgreSQL database
 
 class loader:
@@ -40,21 +40,28 @@ class loader:
                 
         return sql
 
-    def updateSet(cols, where):  
+    def updateSet(cols, where, do = None):  
         # sourcery skip: instance-method-first-arg-name
         key_list = [k  for (k, val) in cols.items()]
         set_list = f"{key_list[0]} = {cols[key_list[0]]}"
         for i in range(1,len(key_list)):
             set_list = f"{set_list}, {key_list[i]} = {cols[key_list[i]]}"
-        
-        return f"UPDATE SET {set_list} WHERE {where}"
+        for i in range(1,len(key_list)-1):
+            set_list2 = f"{set_list}, {key_list[i]} = {cols[key_list[i]]}"
+
+        return (
+            f"UPDATE SET {set_list} WHERE {where}"
+            if do is None
+            else f"UPDATE SET {set_list} WHERE {where} ON CONCLICT {do[key_list[-1]]} DO UPDATE SET {set_list2} WHERE {where}"
+        )
     
     def load(data) -> None:  # sourcery skip: or-if-exp-identity, replace-interpolation-with-fstring, swap-if-expression
-        print("")
         print("<<DEBUT LOADING>>")
+        print("")
 
         conn = co.connect.connection()
         print('Connexion à la base de données établie !')
+        print("")
 
         cur = conn.cursor()
 
@@ -64,191 +71,179 @@ class loader:
                     )
         cur.execute(sql_tags)
         print("Requête de préparation pour le tag Null : %s" %(sql_tags))
+        print("")
 
         # DEBUT DES REQUETES D'INSERTION --------------------------------------------------------------------------------------------------------
         print("DEBUT REQUÊTES INSERTION")
+        print("")
+        
         for i in range(len(data)):
-
-############################################## Requête d'insertion table artiste ##############################################
-
             try:
+    ############################################## Requête d'insertion table artiste ##############################################
 
-                sql = loader.insert(
-                    "public.artists",
-                    {
-                        "artist_name": f"'{data[i]['artist']}'",
-                        "num_sub": f"'{data[i]['num_abonnes']}'"
-                    }
-                )
-                cur.execute(sql)
-                print("")
-                print("Requête %d artiste : %s" %(i,sql))
+                try:
 
-            except UnicodeEncodeError as error:
+                    sql = loader.insert(
+                        "public.artists",
+                        {
+                            "artist_name": f"'{data[i]['artist']}'",
+                            "num_sub": f"'{data[i]['num_abonne']}'"
+                        }
+                    )
+                    cur.execute(sql)
+                    print("Requête %d artiste : %s" %(i,sql))
+                    print("")
 
-                print(f"Probleme enconding data dans la requête : {error.args[1]}")
-                #Si un problème d'encodage et raise alors la valeur qui pose probleme sera remplacé par Null
-                data[i]["artist"] = "null"
-                sql = loader.insert(
-                    "public.artists",
-                    {
-                        "artist_name": f"'{data[i]['artist']}'",
-                        "num_sub": f"'{data[i]['num_abonnes']}'"
-                    }
-                )
-                cur.execute(sql)
-                print("Requête %d artiste avec null : %s" %(i,sql))
+                except UnicodeEncodeError as error:
 
-############################################## Requête d'insertion table tags ##############################################
+                    print(f"Probleme enconding data dans la requête : {error.args[1]}")
+                    #Si un problème d'encodage et raise alors la valeur qui pose probleme sera remplacé par Null
+                    
+                    data[i]["artist"] = "null"
+                    sql = loader.insert(
+                        "public.artists",
+                        {
+                            "artist_name": f"'{data[i]['artist']}'",
+                            "num_sub": f"'{data[i]['num_abonnes']}'"
+                        }
+                    )
+                    cur.execute(sql)
+                    print("Requête %d artiste avec null : %s" %(i,sql))
+                    print("")
 
-            for key in range(len(data[i])-7): # - les 7 tags précedents pour itérer seulement sur les tags
+    ############################################## Requête d'insertion table tags ##############################################
+
                 try:    
                     
                     sql = loader.insert(
                         "public.tags",
                         {
-                            "tag_name": f"'{data[i]['main_tag'].lower()}'"if key == 0 else f"'{data[i]['taglist'].lower()}'"
+                            "tag_name": f"'{data[i]['main_tag'].lower()}'"
                         }
                     )
+                    
                     cur.execute(sql)
                     print("Requête %d tag : %s" %(i,sql))
+                    print("")
 
                 except UnicodeEncodeError as error:
 
                     print(f"Probleme enconding data dans la requête : {error.args[1]}")
                     #Si un problème d'encodage et raise alors la valeur qui pose probleme sera remplacé par Null
 
-                    if key == 0:
-                        data[i]["main_tag"] = "null"  
-                    else:
-                        data[i]["taglist"] = "null"
+                    data[i]["main_tag"] = "null"  
 
                     sql = loader.insert(
                         "public.tags",
                         {
-                            "tag_name": f"'{data[i]['main_tag'].lower()}'"if key == 0 else f"'{data[i]['taglist'].lower()}'"
+                            "tag_name": f"'{data[i]['main_tag'].lower()}'"
                         }
                     )
                     cur.execute(sql)
                     print("Requête %d tag avec Null : %s" %(i,sql))
-
-############################################## Requête d'insertion table tracks ##############################################
-
-            try:
-
-                sql = loader.insert(
-                    "public.tracks", 
-                    {
-                        "title": f"'{data[i]['title']}'", 
-                        "artists_id": f"""({loader.select(
-                            ["artists_id"],
-                            "public.artists",
-                            f"artist_name = '{data[i]['artist']}'"
+                    print("")
+                    
+                for item in data[i]["taglist"].split(","):
+                    
+                    try:
+                        sql = loader.insert(
+                            "public.tags",
+                            {
+                                "tag_name":f"'{item}'"
+                            }
                         )
+                        print("Requête %d tag : %s" %(i,sql))
+                        cur.execute(sql)
+                        print("")
+                    
+                    except (UnicodeEncodeError) as error:
+                        print(f"Probleme dans la requête :\n {error}")
+                        #Si un problème d'encodage et raise alors la valeur qui pose probleme sera remplacé par Null
+
+                        sql = loader.insert(
+                            "public.tags",
+                            {
+                                "tag_name":"'null'"
+                            }
+                        )
+                        print("Requête %d tag null : %s" %(i,sql))
+                        cur.execute(sql)
+                        print("")
+
+    ############################################## Requête d'insertion table tracks ##############################################
+
+                try:
+
+                    sql = loader.insert(
+                        "public.tracks", 
+                        {
+                            "title": f"'{data[i]['title']}'", 
+                            "artists_id": f"""({loader.select(
+                                ["artists_id"],
+                                "public.artists",
+                                f"artist_name = '{data[i]['artist']}'"
+                            )
+                            })""",
+                            "datep": f"'{data[i]['date']}'",
+                            "num_likes": f"'{data[i]['num_likes']}'",
+                            "num_comments": f"'{data[i]['num_comments']}'",
+                            "num_streams": f"'{data[i]['num_streams']}'",
+                            "maintag": f"""({loader.select(
+                                    ["tags_id"],
+                                    "public.tags", 
+                                    f"tag_name = '{data[i]['main_tag'].lower()}'"
+                                )
+                            })"""
+                        },
+                        {
+                            "title" : loader.updateSet(
+                            {
+                                "num_likes": f"'{data[i]['num_likes']}'", 
+                                "num_comments": f"'{data[i]['num_comments']}'",
+                                "num_streams": f"'{data[i]['num_streams']}'"
+                            },
+                            f"tracks.title = '{data[i]['title']}'"
+                            )
+                        }
+                    )
+                    print("Requête %d track : %s" %(i,sql))
+                    print("")
+                    cur.execute(sql)
+
+                except UnicodeEncodeError as error:
+
+                    print(f"Probleme enconding data dans la requête : {error.args[1]}")
+                    #Si un problème d'encodage et raise alors la valeur qui pose probleme sera remplacé par Null
+                    
+                    sql = loader.insert(
+                        "public.tracks",
+                        {
+                            "title": 'Null',
+                            "artists_id": f"""({loader.select(
+                                    ["artists_id"],
+                                    "public.artists",
+                                    f"artist_name = '{data[i]['artist']}'"
+                                )
                         })""",
                         "datep": f"'{data[i]['date']}'",
                         "num_likes": f"'{data[i]['num_likes']}'",
                         "num_comments": f"'{data[i]['num_comments']}'",
                         "num_streams": f"'{data[i]['num_streams']}'",
-                        "maintag": f"""({loader.select(
+                        "tags_id": f"""({loader.select(
                                 ["tags_id"],
-                                "public.tags", 
+                                "public.tags",
                                 f"tag_name = '{data[i]['main_tag'].lower()}'"
                             )
-                        })""",
-                        "taglist": f"""ARRAY({loader.select(
-                                ["tags_id"],"public.tags", 
-                                f"tag_name = '{data[i]['taglist'].lower()}'"
-                            )
-                        })""" if len(data[i]) != 8 else f"""ARRAY({loader.select(
-                                ["tags_id"],
-                                "public.tags", 
-                                f"tag_name = 'null'"
-                            )
                         })"""
-                    },
-                    {
-                        "title" : loader.updateSet(
-                        {
-                            "num_likes": f"'{data[i]['num_likes']}'", 
-                            "num_comments": f"'{data[i]['num_comments']}'",
-                            "num_streams": f"'{data[i]['num_streams']}'", 
-                            "taglist": f"""ARRAY({loader.select(
-                                    ["taglist"], 
-                                    "public.tracks", 
-                                    f"title = '{data[i]['title'].lower()}'"
-                                )
-                            }) || ARRAY({loader.select(
-                                    ["tags_id"],
-                                    "public.tags",
-                                    f"tag_name = '{data[i]['taglist'].lower() if len(data[i]) != 8 else 'null'}'"
-                                )
-                            })"""
-                        },
-                        f"tracks.title = '{data[i]['title']}'"
-                        )
-                    }
-                )
-                print("Requête %d track : %s" %(i,sql))
-                cur.execute(sql)
+                    })
+                    cur.execute(sql)
+                    print("Requête %d track avec null : %s" %(i,sql))
+                    print("")
 
-            except UnicodeEncodeError as error:
+    ############################################## Requête d'insertion table tracks_artists ##############################################
 
-                print(f"Probleme enconding data dans la requête : {error.args[1]}")
-                #Si un problème d'encodage et raise alors la valeur qui pose probleme sera remplacé par Null
-                
-                sql = loader.insert(
-                    "public.tracks",
-                    {
-                        "title": 'Null',
-                        "artists_id": f"""({loader.select(
-                                ["artists_id"],
-                                "public.artists",
-                                f"artist_name = '{data[i]['artist']}'"
-                            )
-                    })""",
-                    "datep": f"'{data[i]['date']}'",
-                    "num_likes": f"'{data[i]['num_likes']}'",
-                    "num_comments": f"'{data[i]['num_comments']}'",
-                    "num_streams": f"'{data[i]['num_streams']}'",
-                    "tags_id": f"""({loader.select(
-                            ["tags_id"],
-                            "public.tags",
-                            f"tag_name = '{data[i]['main_tag'].lower()}'"
-                        )
-                    })"""
-                })
-                cur.execute(sql)
-                print("Requête %d track avec null : %s" %(i,sql))
-
-############################################## Requête d'insertion table tracks_artists ##############################################
-
-            sql_tracks_artists = loader.insert(
-                "public.tracks_artists", 
-                {
-                    "tracks_id": f"""({loader.select(
-                            ["tracks_id"],
-                            "tracks",
-                            f"title = '{data[i]['title']}'"
-                        )
-                    })""",
-                    "artists_id": f"""({loader.select(
-                            ["artists_id"],
-                            "artists",
-                            f"artist_name = '{data[i]['artist']}'"
-                        )
-                    })"""
-                }
-            )
-            cur.execute(sql_tracks_artists)
-            print("Requête %d tracks_artists : %s" %(i,sql_tracks_artists))
-
-############################################## Requête d'insertion table tracks_tags ##############################################
-
-            for key in range(1,len(data[i])-7):
-                
-                sql_tracks_tags = loader.insert(
-                    "public.tracks_tags", 
+                sql_tracks_artists = loader.insert(
+                    "public.tracks_artists", 
                     {
                         "tracks_id": f"""({loader.select(
                                 ["tracks_id"],
@@ -256,26 +251,56 @@ class loader:
                                 f"title = '{data[i]['title']}'"
                             )
                         })""",
-                        "tags_id": f"""({loader.select(
-                                ["tags_id"],
-                                "tags",
-                                f"tag_name = '{data[i]['taglist']}'"
+                        "artists_id": f"""({loader.select(
+                                ["artists_id"],
+                                "artists",
+                                f"artist_name = '{data[i]['artist']}'"
                             )
                         })"""
                     }
                 )
-                cur.execute(sql_tracks_tags)
-                print("Requête %d tracks_tags : %s" %(i,sql_tracks_tags))
+                print("Requête %d tracks_artists : %s" %(i,sql_tracks_artists))
+                cur.execute(sql_tracks_artists)
+                print("")
 
-            conn.commit()
-            print("")
-            print("Commit éffectué pour les 3 dernières requêtes !")           
+    ############################################## Requête d'insertion table tracks_tags ##############################################
 
-        print("")
+                for item in data[i]["taglist"].split(","):
+                    
+                    sql_tracks_tags = loader.insert(
+                        "public.tracks_tags", 
+                        {
+                            "tracks_id": f"""({loader.select(
+                                    ["tracks_id"],
+                                    "tracks",
+                                    f"title = '{data[i]['title']}'"
+                                )
+                            })""",
+                            "tags_id": f"""({loader.select(
+                                    ["tags_id"],
+                                    "tags",
+                                    f"tag_name = '{item}'"
+                                )
+                            })"""
+                        }
+                    )
+                    print("Requête %d tracks_tags : %s" %(i,sql_tracks_tags))
+                    print("")
+                    cur.execute(sql_tracks_tags)
+
+                conn.commit()
+                print("Commit")           
+                print("")
+            except e.StringDataRightTruncation as error :
+                print(error)
+                conn.rollback()
+                continue
+        
         print("Fin des requête d'insertion")
-
+        print("")
         cur.close()
         print("Curseur fermé")
         conn.close()
         print("Connexion avec la base de données fermée")
+        print("")
         print("<<FIN LOADING>>")

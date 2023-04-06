@@ -3,3 +3,13 @@ database.ini
 
 # jypiter note book test #
 test.ipynb
+
+# instance de scraping 
+ScrapInstances
+ScrapAcidcore1M.py
+ScrapHardcore1M.py
+ScrapTekno1M.py
+ScrapUpTempo1M.py
+ScrapTechno1M.py
+ScrapUptempo_hardcore1M.py
+ScrapRawstyle1M.py

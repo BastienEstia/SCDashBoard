@@ -4,35 +4,46 @@ class transformer:
     
     def __init__(self):
         pass
-            
-    def fixstr(self):
-        return self.replace("'", "''")
+    
+    @staticmethod        
+    def fixstr(str):
+        return str.replace("'", "''") if str else "null"
 
-    def fixdate(self):
-        jour = self.split("T")[0]
-        heure = self.split("T")[1].split(".")[0]
-        return f'{jour} {heure}'
+    @staticmethod 
+    def fixdate(date):
+        if date :
+            jour = date.split("T")[0]
+            heure = date.split("T")[1].split(".")[0]
+            return f'{jour} {heure}'
+        else :
+            return '0000-00-00 00:00:00'
+    
+    @staticmethod
+    def fixint(value):
+        return 0 if value is None else value
 
-    def fixinteger(self):
-        try:
-            strlist = self.split(".")
-            if self.find("K") != -1:
-                new_int = int(strlist[0])*1000 + int(strlist[1].split("K")[0])*100
-            elif self.find("M") != -1:
-                new_int = int(strlist[0])*1000000 + int(strlist[1].split("M")[0])*100000
-            else:
-                new_int = int(''.join(strlist))
-        except ValueError:
-            strlist = self.split(",")
-            if self.find("K") != -1:
-                new_int = int(strlist[0])*1000 + int(strlist[1].split("K")[0])*100
-            elif self.find("M") != -1:
-                new_int = int(strlist[0])*1000000 + int(strlist[1].split("M")[0])*100000
-            else:
-                new_int = int(''.join(strlist))
-        return new_int
+    @staticmethod
+    def fixinteger(value):
+        # sourcery skip: last-if-guard, remove-redundant-slice-index, remove-unnecessary-else, simplify-negative-index, swap-if-else-branches
+        if value:
+            # determine multiplier
+            if value.find(",") != -1:
+                value = f"{value.split(',')[0]}.{value.split(',')[1]}"
+            multiplier = 1
+            if value.endswith('K'):
+                multiplier = 1000
+                value = value[0:len(value)-1] # strip multiplier character
+            elif value.endswith('M'):
+                multiplier = 1000000
+                value = value[0:len(value)-1] # strip multiplier character
 
-    def transform(data):
+            # convert value to float, multiply, then convert the result to int
+            return int(float(value) * multiplier)
+
+        else:
+            return 0
+
+    def transformPageSourceToRowData(data):
         # sourcery skip: extract-duplicate-method, instance-method-first-arg-name
         print("")
         print("<<DEBUT TRANSFORMATION>>")
@@ -102,4 +113,39 @@ class transformer:
 
         print("<<FIN EXTRACTION>>")
 
+        return datas
+    
+    def transformJSONCollectionToRowData(data):
+        
+        @staticmethod
+        def fixTaglist(str):
+            if str:
+                strlist = str.replace(r"\"", "").replace('"', '').replace(" ", ",").lower()
+                return strlist
+            else:
+                return 'null'
+        n = 0
+        datas=[]
+        
+        print("<<DEBUT TRANSFORMATION>>")
+        for item in data:
+            n = n + 1
+            d_data = {
+                "title": transformer.fixstr(item["title"]),
+                "artist": transformer.fixstr(item["user"]["username"].lower()),
+                "num_abonne": item["user"]["followers_count"],
+                "date": transformer.fixdate(item["created_at"]),
+                "num_likes": transformer.fixint(item["likes_count"]),
+                "num_comments": transformer.fixint(item["comment_count"]),
+                "num_streams": transformer.fixint(item["playback_count"]),
+                "main_tag": transformer.fixstr(item["genre"]) if item["genre"] != "" else "null",
+                "taglist" : fixTaglist(transformer.fixstr(item["tag_list"])) if item["tag_list"] != "" else "null"
+            }
+            print(f"Track : {n}\n {d_data}")
+            
+            datas.append(d_data)
+        print(f"Nb de requête : {n}")
+        print("")
+        print("<<FIN TRANSFORMATION>>")
+        print("")
         return datas
