@@ -10,10 +10,11 @@ Dashboard : Metabase
 
 Python ETL pipline class :
 
-Extractor : Handle an extract() method that open a specific tag link from SC.com and scroll down on an infinite dynamic flux until a specific track creation date.
-extract() return a beautifulsoup item that parse the the websource code after scrolling down. 
+Extractor : Handle an extractByWebPageSourceCode() method that open a specific tag link from SC.com and scroll down on an infinite dynamic flux until a specific track creation date and return a beautifulsoup item that parse the the websource code after scrolling down : but this is very slow and do not work when a large amount of track are created (i.e tag techo on SC)
+New Extractor method named extractByAPI() not using SC API because it's closed but using API requests from AJAX update flows. It return a collection of JSON object
 
-Transformer : Handle a transform() method that transform the web source code into a collection of python dictionaries with key/values of tracks.
+Transformer : Handle a transformPageSourceToRowData() method that transform the web source code into a collection of python dictionaries with key/values of tracks.
+New Transformer method named transformJSONCollectionToRowData() that transform JSON tracks into row data with some rectification around data structure.
 
 Loader : Handle a loading() method that insert data from dictionary collection into postgreSQL DB by SQL insert request.
 
