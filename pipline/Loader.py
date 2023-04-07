@@ -1,5 +1,9 @@
 import Connect as co
 from psycopg2 import errors as e
+import logging as l 
+
+l.basicConfig(filename='SCDashBoard/pipline/logs/Loader.log', filemode='w', format='%(asctime)s %(message)s', encoding='UTF-8', level=l.INFO)
+
 # It takes a list of dictionaries and inserts the data into a PostgreSQL database
 
 class loader:
@@ -56,12 +60,12 @@ class loader:
         )
     
     def load(data) -> None:  # sourcery skip: or-if-exp-identity, replace-interpolation-with-fstring, swap-if-expression
-        print("<<DEBUT LOADING>>")
-        print("")
+        l.info("<<DEBUT LOADING>>")
+        l.info("")
 
         conn = co.connect.connection()
-        print('Connexion à la base de données établie !')
-        print("")
+        l.info('Connexion à la base de données établie !')
+        l.info("")
 
         cur = conn.cursor()
 
@@ -70,12 +74,12 @@ class loader:
                     "INSERT INTO public.tags(tag_name) VALUES ('null') ON CONFLICT DO NOTHING;"
                     )
         cur.execute(sql_tags)
-        print("Requête de préparation pour le tag Null : %s" %(sql_tags))
-        print("")
+        l.info("Requête de préparation pour le tag Null : %s" %(sql_tags))
+        l.info("")
 
         # DEBUT DES REQUETES D'INSERTION --------------------------------------------------------------------------------------------------------
-        print("DEBUT REQUÊTES INSERTION")
-        print("")
+        l.info("DEBUT REQUÊTES INSERTION")
+        l.info("")
         
         for i in range(len(data)):
             try:
@@ -91,12 +95,12 @@ class loader:
                         }
                     )
                     cur.execute(sql)
-                    print("Requête %d artiste : %s" %(i,sql))
-                    print("")
+                    l.info("Requête %d artiste : %s" %(i,sql))
+                    l.info("")
 
                 except UnicodeEncodeError as error:
 
-                    print(f"Probleme enconding data dans la requête : {error.args[1]}")
+                    l.error(f"Probleme enconding data dans la requête : {error.args[1]}")
                     #Si un problème d'encodage et raise alors la valeur qui pose probleme sera remplacé par Null
                     
                     data[i]["artist"] = "null"
@@ -108,8 +112,8 @@ class loader:
                         }
                     )
                     cur.execute(sql)
-                    print("Requête %d artiste avec null : %s" %(i,sql))
-                    print("")
+                    l.error("Requête %d artiste avec null : %s" %(i,sql))
+                    l.info("")
 
     ############################################## Requête d'insertion table tags ##############################################
 
@@ -123,12 +127,12 @@ class loader:
                     )
                     
                     cur.execute(sql)
-                    print("Requête %d tag : %s" %(i,sql))
-                    print("")
+                    l.info("Requête %d tag : %s" %(i,sql))
+                    l.info("")
 
                 except UnicodeEncodeError as error:
 
-                    print(f"Probleme enconding data dans la requête : {error.args[1]}")
+                    l.error(f"Probleme enconding data dans la requête : {error.args[1]}")
                     #Si un problème d'encodage et raise alors la valeur qui pose probleme sera remplacé par Null
 
                     data[i]["main_tag"] = "null"  
@@ -140,8 +144,8 @@ class loader:
                         }
                     )
                     cur.execute(sql)
-                    print("Requête %d tag avec Null : %s" %(i,sql))
-                    print("")
+                    l.error("Requête %d tag avec Null : %s" %(i,sql))
+                    l.info("")
                     
                 for item in data[i]["taglist"].split(","):
                     
@@ -152,12 +156,12 @@ class loader:
                                 "tag_name":f"'{item}'"
                             }
                         )
-                        print("Requête %d tag : %s" %(i,sql))
+                        l.info("Requête %d tag : %s" %(i,sql))
                         cur.execute(sql)
-                        print("")
+                        l.info("")
                     
                     except (UnicodeEncodeError) as error:
-                        print(f"Probleme dans la requête :\n {error}")
+                        l.error(f"Probleme dans la requête :\n {error}")
                         #Si un problème d'encodage et raise alors la valeur qui pose probleme sera remplacé par Null
 
                         sql = loader.insert(
@@ -166,9 +170,9 @@ class loader:
                                 "tag_name":"'null'"
                             }
                         )
-                        print("Requête %d tag null : %s" %(i,sql))
+                        l.error("Requête %d tag null : %s" %(i,sql))
                         cur.execute(sql)
-                        print("")
+                        l.info("")
 
     ############################################## Requête d'insertion table tracks ##############################################
 
@@ -206,13 +210,13 @@ class loader:
                             )
                         }
                     )
-                    print("Requête %d track : %s" %(i,sql))
-                    print("")
+                    l.info("Requête %d track : %s" %(i,sql))
+                    l.info("")
                     cur.execute(sql)
 
                 except UnicodeEncodeError as error:
 
-                    print(f"Probleme enconding data dans la requête : {error.args[1]}")
+                    l.error(f"Probleme enconding data dans la requête : {error.args[1]}")
                     #Si un problème d'encodage et raise alors la valeur qui pose probleme sera remplacé par Null
                     
                     sql = loader.insert(
@@ -237,8 +241,8 @@ class loader:
                         })"""
                     })
                     cur.execute(sql)
-                    print("Requête %d track avec null : %s" %(i,sql))
-                    print("")
+                    l.error("Requête %d track avec null : %s" %(i,sql))
+                    l.info("")
 
     ############################################## Requête d'insertion table tracks_artists ##############################################
 
@@ -259,9 +263,9 @@ class loader:
                         })"""
                     }
                 )
-                print("Requête %d tracks_artists : %s" %(i,sql_tracks_artists))
+                l.info("Requête %d tracks_artists : %s" %(i,sql_tracks_artists))
                 cur.execute(sql_tracks_artists)
-                print("")
+                l.info("")
 
     ############################################## Requête d'insertion table tracks_tags ##############################################
 
@@ -284,23 +288,24 @@ class loader:
                             })"""
                         }
                     )
-                    print("Requête %d tracks_tags : %s" %(i,sql_tracks_tags))
-                    print("")
+                    l.info("Requête %d tracks_tags : %s" %(i,sql_tracks_tags))
+                    l.info("")
                     cur.execute(sql_tracks_tags)
 
                 conn.commit()
-                print("Commit")           
-                print("")
+                l.info("Commit")           
+                l.info("")
             except e.StringDataRightTruncation as error :
-                print(error)
+                l.warning(f'{error} | All requests for this tracks rollback')
                 conn.rollback()
                 continue
         
-        print("Fin des requête d'insertion")
-        print("")
+        l.info("Fin des requête d'insertion")
+        l.info("")
         cur.close()
-        print("Curseur fermé")
+        l.info("Curseur fermé")
         conn.close()
-        print("Connexion avec la base de données fermée")
-        print("")
-        print("<<FIN LOADING>>")
+        l.info("Connexion avec la base de données fermée")
+        l.info("")
+        l.info("<<FIN LOADING>>")
+        
