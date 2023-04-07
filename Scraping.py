@@ -13,12 +13,12 @@ class Scraping():
         self.__url = url
     
 #Méthode html_scrapping : méthode principal de Scrapping    
-    def html_scraping(self) -> webdriver:
+    def html_scraping(self) -> webdriver:  # sourcery skip: class-extract-method
         service = Service(executable_path=ChromeDriverManager().install())
         
         options = webdriver.ChromeOptions()
-        options.add_argument('headless')
-        options.add_experimental_option("detach", True) # permet de garder la fenêtre chrome ouverte pour voir ce qu'on fait
+        options.add_argument('headless') # permet de garder la fenêtre chrome ouverte pour voir ce qu'on fait
+        options.add_experimental_option("detach", True) 
         options.add_experimental_option("excludeSwitches", ['enable-logging'])
         
         driver = webdriver.Chrome(service=service, options=options)
@@ -31,8 +31,8 @@ class Scraping():
         service = Service(executable_path=ChromeDriverManager().install())
         
         options = webdriver.ChromeOptions()
-        options.add_argument('headless')
-        options.add_experimental_option("detach", True) # permet de garder la fenêtre chrome ouverte pour voir ce qu'on fait
+        options.add_argument('headless') # permet de garder la fenêtre chrome ouverte pour voir ce qu'on fait
+        options.add_experimental_option("detach", True) 
         options.add_experimental_option("excludeSwitches", ['enable-logging'])
         
         driver = webdriver.Chrome(service=service, options=options)

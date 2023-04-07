@@ -1,5 +1,8 @@
-# It's a class that transforms data
+import logging as l 
 
+l.basicConfig(filename='SCDashBoard/pipline/logs/Transformer.log', filemode='w', format='%(asctime)s %(message)s', encoding='UTF-8', level=l.INFO)
+
+# It's a class that transforms data
 class transformer:
     
     def __init__(self):
@@ -17,10 +20,6 @@ class transformer:
             return f'{jour} {heure}'
         else :
             return '0000-00-00 00:00:00'
-    
-    @staticmethod
-    def fixint(value):
-        return 0 if value is None else value
 
     @staticmethod
     def fixinteger(value):
@@ -37,22 +36,22 @@ class transformer:
                 multiplier = 1000000
                 value = value[0:len(value)-1] # strip multiplier character
 
-            # convert value to float, multiply, then convert the result to int
             return int(float(value) * multiplier)
 
         else:
+            l.info(f'integer {value} = 0')
             return 0
 
     def transformPageSourceToRowData(data):
         # sourcery skip: extract-duplicate-method, instance-method-first-arg-name
-        print("")
-        print("<<DEBUT TRANSFORMATION>>")
+        l.info("")
+        l.info("<<DEBUT TRANSFORMATION>>")
 
-        print("Récupération des items contnenant les données...")
+        l.info("Récupération des items contnenant les données...")
         tracks = data.find_all("li", {"class": "soundList__item"})
 
-        print("Transformation des données... ")
-        print("")
+        l.info("Transformation des données... ")
+        l.info("")
         datas = []
         for track in tracks:
 
@@ -95,23 +94,13 @@ class transformer:
             else:
                 d_data["num_abonnes"] = 0
 
-            print("Nouvelle ligne :")
-            print(d_data)
-            print("")
-
-            """
-            print("titre : " + str(d_data["title"]) + "\n" +
-            "artist : " + str(d_data["artist"]) + "\n" +
-            "date : " + str(d_data["date"]) + "\n" +
-            "num_likes : " + str(d_data["num_likes"]) + "\n" +
-            "num_comments : " + str(d_data["num_comments"]) + "\n" +
-            "num_streams : " + str(d_data["num_streams"]) + "\n" +
-            "main_tag : " + str(d_data["main_tag"]))
-            """
+            l.info("Nouvelle ligne :")
+            l.info(d_data)
+            l.info("")
 
             datas.append(d_data)
 
-        print("<<FIN EXTRACTION>>")
+        l.info("<<FIN EXTRACTION>>")
 
         return datas
     
@@ -124,10 +113,14 @@ class transformer:
                 return strlist
             else:
                 return 'null'
+        @staticmethod
+        def fixint(value):
+            return 0 if value is None else value
+        
         n = 0
         datas=[]
         
-        print("<<DEBUT TRANSFORMATION>>")
+        l.info("<<DEBUT TRANSFORMATION>>")
         for item in data:
             n = n + 1
             d_data = {
@@ -135,17 +128,17 @@ class transformer:
                 "artist": transformer.fixstr(item["user"]["username"].lower()),
                 "num_abonne": item["user"]["followers_count"],
                 "date": transformer.fixdate(item["created_at"]),
-                "num_likes": transformer.fixint(item["likes_count"]),
-                "num_comments": transformer.fixint(item["comment_count"]),
-                "num_streams": transformer.fixint(item["playback_count"]),
+                "num_likes": fixint(item["likes_count"]),
+                "num_comments": fixint(item["comment_count"]),
+                "num_streams": fixint(item["playback_count"]),
                 "main_tag": transformer.fixstr(item["genre"]) if item["genre"] != "" else "null",
                 "taglist" : fixTaglist(transformer.fixstr(item["tag_list"])) if item["tag_list"] != "" else "null"
             }
-            print(f"Track : {n}\n {d_data}")
+            l.info(f"Track : {n}\n {d_data}")
             
             datas.append(d_data)
-        print(f"Nb de requête : {n}")
-        print("")
-        print("<<FIN TRANSFORMATION>>")
-        print("")
+        l.info(f"Nb de requête : {n}")
+        l.info("")
+        l.info("<<FIN TRANSFORMATION>>")
+        l.info("")
         return datas

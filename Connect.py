@@ -2,6 +2,7 @@ import psycopg2 as ps
 from configparser import ConfigParser
 
 def config(filename="SCDashBoard\database.ini", section="postgresql"):
+    # sourcery skip: raise-specific-error
     """
     It reads a configuration file and returns a dictionary of the parameters in the specified section
     
@@ -14,12 +15,14 @@ def config(filename="SCDashBoard\database.ini", section="postgresql"):
     # read config file
     parser.read(filename)
 
-    if not parser.has_section(section):
-        raise Exception('Section {0} not found in the {1} file'.format(section, filename)) # sourcery skip: raise-specific-error
-
-    params = parser.items(section)
-    return {param[0]: param[1] for param in params}
-
+    try:
+        if not parser.has_section(section):
+            raise Exception(f'Section {section} not found in the {filename} file')
+        params = parser.items(section)
+        return {param[0]: param[1] for param in params}
+    except Exception as error:
+        print(error)
+        return -1
 class connect(ps._psycopg.connection):
     
     def __init__(self):
@@ -55,7 +58,7 @@ class connect(ps._psycopg.connection):
             cur.close()
         except (Exception, ps.DatabaseError) as error:
             print(f"erreur : {error}")
-
+            return -1
         return conn
         
 #connect.connection()
