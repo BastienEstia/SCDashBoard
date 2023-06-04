@@ -2,7 +2,7 @@ import Connect as co
 from psycopg2 import errors as e
 import logging as l 
 
-l.basicConfig(filename='SCDashBoard/pipline/logs/Loader.log', filemode='w', format='%(asctime)s %(message)s', encoding='UTF-8', level=l.INFO)
+l.basicConfig(filename='pipline/logs/Loader.log', filemode='w', format='%(asctime)s %(message)s', encoding='UTF-8', level=l.INFO)
 
 # It takes a list of dictionaries and inserts the data into a PostgreSQL database
 

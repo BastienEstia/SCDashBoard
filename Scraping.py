@@ -20,6 +20,13 @@ class Scraping():
         options.add_argument('headless') # permet de garder la fenêtre chrome ouverte pour voir ce qu'on fait
         options.add_experimental_option("detach", True) 
         options.add_experimental_option("excludeSwitches", ['enable-logging'])
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-extensions')
+        options.add_argument('--disable-gpu')
+        options.add_argument('disable-infobars')
+        options.add_argument('start-maximized')
+        options.add_argument('--single-process')
         
         driver = webdriver.Chrome(service=service, options=options)
         driver.get(self.__url)
@@ -29,13 +36,22 @@ class Scraping():
     
     def API_scraping(self) -> webdriver:
         service = Service(executable_path=ChromeDriverManager().install())
+        # service = Service(executable_path="/usr/bin/chromedriver")
         
         options = webdriver.ChromeOptions()
         options.add_argument('headless') # permet de garder la fenêtre chrome ouverte pour voir ce qu'on fait
         options.add_experimental_option("detach", True) 
         options.add_experimental_option("excludeSwitches", ['enable-logging'])
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-extensions')
+        options.add_argument('--disable-gpu')
+        options.add_argument('disable-infobars')
+        options.add_argument('start-maximized')
+        options.add_argument('--single-process')
         
         driver = webdriver.Chrome(service=service, options=options)
         time.sleep(1) #Attente de 2sec pour que les animations de la page soient terminé
         
         return driver
+    

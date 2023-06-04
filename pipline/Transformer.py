@@ -1,6 +1,6 @@
 import logging as l 
 
-l.basicConfig(filename='SCDashBoard/pipline/logs/Transformer.log', filemode='w', format='%(asctime)s %(message)s', encoding='UTF-8', level=l.INFO)
+l.basicConfig(filename='pipline/logs/Transformer.log', filemode='w', format='%(asctime)s %(message)s', encoding='UTF-8', level=l.INFO)
 
 # It's a class that transforms data
 class transformer:

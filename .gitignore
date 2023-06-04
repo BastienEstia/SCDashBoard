@@ -6,3 +6,10 @@ test.ipynb
 
 # instance de scraping #
 privateTests/
+
+# pycache
+__pycache__/
+pipeline/__pycache__/
+
+# logs
+pipeline/logs/

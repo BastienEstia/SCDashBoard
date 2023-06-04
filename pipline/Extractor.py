@@ -7,7 +7,7 @@ from selenium.common.exceptions import NoSuchElementException
 from pipline.Transformer import transformer as t
 import logging as l 
 
-l.basicConfig(filename='SCDashBoard/pipline/logs/Extractor.log', filemode='w', format='%(asctime)s %(message)s', encoding='UTF-8', level=l.INFO)
+l.basicConfig(filename='pipline/logs/Extractor.log', filemode='w', format='%(asctime)s %(message)s', encoding='UTF-8', level=l.INFO)
 
 # It opens a browser, scrolls down to the bottom of the page, and then returns the html code of the
 # page
@@ -107,8 +107,8 @@ class extractor:
         
         @staticmethod        
         def reqConstructor(date):
-            return f"https://api-v2.soundcloud.com/recent-tracks/{self.extracting_tag()}?offset={extractor.reversedate(date)}%2Crecent-content-tracks-by-tag%2Csoundcloud%3Atracks%3A1482398899&limit=10&client_id=RMDIzNoU4QIzQsT3xq9J5TdxFFQlJvLY&app_version=1679652891&app_locale=fr"
-
+            return f"https://api-v2.soundcloud.com/recent-tracks/{self.extracting_tag()}?offset={extractor.reversedate(date)}%2Crecent-content-tracks-by-tag%2Csoundcloud%3Atracks%3A1482398899&limit=10&client_id=tyFGpYeFlJG938Pu0R4ibFdtNBkvBkcJ&app_version=1685711325&app_locale=fr"
+        
         n = 0
         i = 0
         data = []
@@ -119,6 +119,7 @@ class extractor:
         browser = scrp.Scraping().API_scraping()
         while True:
             i = i + 1
+            print(f"requete : {reqConstructor(self.date_depart)}")
             browser.get(procReq or reqConstructor(self.date_depart))
             dataCollection = json.loads(bs.BeautifulSoup(browser.page_source, "html.parser").get_text())
             procReq = f"{dataCollection['next_href']}&client_id=RMDIzNoU4QIzQsT3xq9J5TdxFFQlJvLY&app_version=1679652891&app_locale=fr"

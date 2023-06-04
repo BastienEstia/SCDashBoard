@@ -9,7 +9,7 @@ import time
 URL="https://soundcloud.com/tags/acidcore"
 ITEM_NB = 9
 
-extractor = E.extractor(URL, None, "2023-04-05 13:00:00", "2023-04-04 13:00:00")
+extractor = E.extractor(URL, None, "2023-06-05 13:00:00", "2023-06-04 13:00:00")
 
 extracted_data = extractor.extractByAPI()
 
