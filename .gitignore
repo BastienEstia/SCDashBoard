@@ -13,3 +13,9 @@ pipeline/__pycache__/
 
 # logs
 pipeline/logs/
+
+# tests
+helloworld.py
+
+# temptest
+tmp/

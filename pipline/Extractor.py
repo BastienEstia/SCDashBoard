@@ -5,29 +5,53 @@ import json
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from pipline.Transformer import transformer as t
-import logging as l 
+import logging as l
+import sys 
+import gc
+from datetime import datetime
 
-l.basicConfig(filename='pipline/logs/Extractor.log', filemode='w', format='%(asctime)s %(message)s', encoding='UTF-8', level=l.INFO)
+logger = l.getLogger("Extractor")
+logger.setLevel(l.DEBUG)
+formatter = l.Formatter('%(asctime)s | %(levelname)s | %(message)s')
+
+stdout_handler = l.StreamHandler(sys.stdout)
+stdout_handler.setLevel(l.INFO)
+stdout_handler.setFormatter(formatter)
+
+fh = l.FileHandler("/home/devadmin/Pythons_Scripts/MS_DB/SCDashBoard/pipline/logs/Extractor.log", "w")
+fh.mode = 'w'
+fh.setFormatter(formatter)
+
+logger.addHandler(stdout_handler)
+logger.addHandler(fh)
+
+
 
 # It opens a browser, scrolls down to the bottom of the page, and then returns the html code of the
 # page
 
 class extractor:
     
-    def __init__(self, url, nb_tracks=None,date_depart = None, date_cible=None):
+    def __init__(self, url, mode=None, nb_tracks=None,date_depart = None, date_cible=None):
         self.url = url
+        if mode:
+            self.mode = mode
+        else:
+            self.mode = "d" 
         self.nb_tracks = nb_tracks
         self.date_depart = date_depart
         self.date_cible = date_cible
+              
     
     def extracting_tag(self):
         return self.url.split("/")[-1]
     
     @staticmethod
     def reversedate(str):
-                date=str.split(' ')[0]
-                heure = str.split(' ')[1]
-                return f'{date}T{heure}.000Z' 
+        logger.debug(f"str : {str}")
+        date=str.split(' ')[0]
+        heure = str.split(' ')[1]
+        return f'{date}T{heure}.000Z' 
 
     """
     @staticmethod
@@ -46,13 +70,13 @@ class extractor:
                     return -1
                     
 
-            l.info("<<DEBUT EXTRACTION>>")
+            logger.info("<<DEBUT EXTRACTION>>")
 
-            l.info("Ouverture de Chrome...")
+            logger.info("Ouverture de Chrome...")
             browser = scrp.Scraping(self.url).html_scraping()
 
             #Appuiyer sur "accepter les cookies"
-            l.info("Clic sur accepter cookies...")
+            logger.info("Clic sur accepter cookies...")
             button_cookie_agree = browser.find_element(By.ID, 'onetrust-accept-btn-handler')
             button_cookie_agree.click()
             browser.implicitly_wait(1)
@@ -63,27 +87,27 @@ class extractor:
                 while tryFindByCSSElement(browser,self.date_cible) == -1:
                     
                     browser.execute_script("window.scrollTo(0, 100000000)")
-                    l.info("Scroll/")
+                    logger.info("Scroll/")
                     browser.implicitly_wait(0.1)
                     if scrollingSpeed:
                         browser.execute_script("window.scrollTo(0, 100000000)")
-                        l.info("Scroll/")
+                        logger.info("Scroll/")
                         browser.implicitly_wait(1)
                         browser.execute_script("window.scrollTo(0, 100000000)")
-                        l.info("Scroll/")
+                        logger.info("Scroll/")
                         browser.implicitly_wait(1)
                         browser.execute_script("window.scrollTo(0, 100000000)")
-                        l.info("Scroll/")
+                        logger.info("Scroll/")
                         browser.implicitly_wait(1)
                         browser.execute_script("window.scrollTo(0, 100000000)")
-                        l.info("BigScroll/")
+                        logger.info("BigScroll/")
                         browser.implicitly_wait(1)
                     
                 data = bs.BeautifulSoup(browser.page_source, "html.parser")
             else:
                 
                 list_data_item = browser.find_elements(By.CLASS_NAME, "soundList__item")
-                l.info("Première tracks trouvé !")
+                logger.info("Première tracks trouvé !")
                 
                 #Scroll down pour faire apparaitre plus d'item SC
                 while len(list_data_item)<=self.nb_tracks:
@@ -91,15 +115,15 @@ class extractor:
                     browser.execute_script("window.scrollTo(0, 10000)")
                     time.sleep(2)
                     list_data_item = browser.find_elements(By.CLASS_NAME, "soundList__item")
-                    l.info("Scroll/")
+                    logger.info("Scroll/")
                 
-                l.info("Extraction du code source de la page...")   
+                logger.info("Extraction du code source de la page...")   
                 data = bs.BeautifulSoup(browser.page_source, "html.parser")
 
-            l.info("Fermeture de Chrome...")
+            logger.info("Fermeture de Chrome...")
             browser.quit() 
 
-            l.info("<<FIN EXTRACTION>>")
+            logger.info("<<FIN EXTRACTION>>")
 
             return data
         
@@ -109,38 +133,98 @@ class extractor:
         def reqConstructor(date):
             return f"https://api-v2.soundcloud.com/recent-tracks/{self.extracting_tag()}?offset={extractor.reversedate(date)}%2Crecent-content-tracks-by-tag%2Csoundcloud%3Atracks%3A1482398899&limit=10&client_id=tyFGpYeFlJG938Pu0R4ibFdtNBkvBkcJ&app_version=1685711325&app_locale=fr"
         
+        @staticmethod
+        def buildDataList(item, datalist):
+            datalist.append(item)
+            return data
+        
+        @staticmethod
+        def writeToFile(item):
+            with open(f"/home/devadmin/Pythons_Scripts/MS_DB/SCDashBoard/tmp/{datetime.now().date()}-Extraction-{self.date_depart}-{self.date_cible}.json", "a") as f:
+                json.dump(item, f)
+        
+        @staticmethod
+        def writeToMultipleFiles(datalist):
+            with open(f"/home/devadmin/Pythons_Scripts/MS_DB/SCDashBoard/tmp/{datetime.now().date()}-Extraction-{self.date_depart}-{self.date_cible}-file_{i}.json", "a") as f:
+                json.dump(datalist, f)
+        
         n = 0
         i = 0
+        # if self.mode=="d":
         data = []
+        dataw = {}               
         procReq = None
-        l.info("<<DEBUT EXTRACTION>>")
+        logger.info("<<DEBUT EXTRACTION>>")
 
-        l.info("Ouverture de Chrome...")
+        logger.info("Ouverture de Chrome...")
         browser = scrp.Scraping().API_scraping()
         while True:
             i = i + 1
-            print(f"requete : {reqConstructor(self.date_depart)}")
+            
+            logger.debug(f"request to SC : {procReq or reqConstructor(self.date_depart)}")
             browser.get(procReq or reqConstructor(self.date_depart))
             dataCollection = json.loads(bs.BeautifulSoup(browser.page_source, "html.parser").get_text())
-            procReq = f"{dataCollection['next_href']}&client_id=RMDIzNoU4QIzQsT3xq9J5TdxFFQlJvLY&app_version=1679652891&app_locale=fr"
-            l.info(f"Requête : {i} ---------------------------------------------------------------------------------------")
-            for item in dataCollection["collection"]:
-                data.append(item)
-                n = n + 1
-                l.info(f"Item : {n}\ncreated_at : {t.fixdate(item['created_at'])}")
+            procReq = f"{dataCollection['next_href']}&client_id=tyFGpYeFlJG938Pu0R4ibFdtNBkvBkcJ&app_version=1685711325&app_locale=fr"
+            logger.info(f"Requête : {i} ---------------------------------------------------------------------------------------")
+            
+            match self.mode:
+                case "d":
+                    for item in dataCollection["collection"]:
+                        logger.debug(f"item_type : {type(item)}")
+                        logger.debug(f"item_print : {item}")
+                        buildDataList(item, data)
+                        n = n + 1
+                        logger.info(f"Item : {n} | created_at : {t.fixdate(item['created_at'])}")
+                        logger.debug(f"nb objets en RAM : {gc.get_count()}")
+                case "wd":
+                    for item in dataCollection["collection"]:
+                        writeToFile(item)
+                        buildDataList(item, data)
+                        n = n + 1
+                        logger.info(f"Item : {n} | created_at : {t.fixdate(item['created_at'])}")
+                        logger.debug(f"nb objets en RAM : {gc.get_count()}")
+                case "wmf":
+                    for item in dataCollection["collection"]:
+                        n = n + 1
+                        logger.info(f"Item : {n} | created_at : {t.fixdate(item['created_at'])}")
+                        logger.debug(f"nb objets en RAM : {gc.get_count()}")
+                    writeToMultipleFiles(dataCollection)
+                    
+                case "wmfd":
+                    for item in dataCollection["collection"]:
+                        
+                        buildDataList(item, data) 
+                        # buildDataList(item, dataw)
+                        n = n + 1
+                        logger.info(f"Item : {n} | created_at : {t.fixdate(item['created_at'])}")
+                        logger.debug(f"nb objets en RAM : {gc.get_count()}")
+                        
+                    # writeToMultipleFiles(dataw)
+                    # dataw.clear()
+                    writeToMultipleFiles(dataCollection)
+                    
+            # END CONDITION :       
             try:
             
                 if t.fixdate(dataCollection["collection"][-1]["created_at"])<=self.date_cible:
                     break
         
             except IndexError as error:
-                l.error(error)
+                logger.error(error)
                 continue
             
-        l.info("")
-        l.info("Fermeture de Chrome...")    
+        logger.info("")
+        logger.info("Fermeture de Chrome...")    
         browser.quit()
-        l.info("<<FIN EXTRACTION>>")
-        l.info("")
+        logger.info("<<FIN EXTRACTION>>")
+        logger.info("")
         
-        return data
+        match self.mode:
+            case "d":
+                return data
+            case "wd":
+                return data
+            case "wmfd":
+                return data
+            case "wmf":
+                pass

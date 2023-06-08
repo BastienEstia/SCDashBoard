@@ -1,8 +1,23 @@
 import Connect as co
 from psycopg2 import errors as e
-import logging as l 
+import logging as l
+import sys 
+import gc
 
-l.basicConfig(filename='pipline/logs/Loader.log', filemode='w', format='%(asctime)s %(message)s', encoding='UTF-8', level=l.INFO)
+logger = l.getLogger("Loader")
+logger.setLevel(l.DEBUG)
+formatter = l.Formatter('%(asctime)s | %(levelname)s | %(message)s')
+
+stdout_handler = l.StreamHandler(sys.stdout)
+stdout_handler.setLevel(l.INFO)
+stdout_handler.setFormatter(formatter)
+
+fh = l.FileHandler("/home/devadmin/Pythons_Scripts/MS_DB/SCDashBoard/pipline/logs/Loader.log", 'w')
+fh.mode = 'w'
+fh.setFormatter(formatter)
+
+logger.addHandler(stdout_handler)
+logger.addHandler(fh)
 
 # It takes a list of dictionaries and inserts the data into a PostgreSQL database
 
@@ -60,12 +75,12 @@ class loader:
         )
     
     def load(data) -> None:  # sourcery skip: or-if-exp-identity, replace-interpolation-with-fstring, swap-if-expression
-        l.info("<<DEBUT LOADING>>")
-        l.info("")
+        logger.info("<<DEBUT LOADING>>")
+        logger.info("")
 
         conn = co.connect.connection()
-        l.info('Connexion à la base de données établie !')
-        l.info("")
+        logger.info('Connexion à la base de données établie !')
+        logger.info("")
 
         cur = conn.cursor()
 
@@ -74,12 +89,12 @@ class loader:
                     "INSERT INTO public.tags(tag_name) VALUES ('null') ON CONFLICT DO NOTHING;"
                     )
         cur.execute(sql_tags)
-        l.info("Requête de préparation pour le tag Null : %s" %(sql_tags))
-        l.info("")
+        logger.info("Requête de préparation pour le tag Null : %s" %(sql_tags))
+        logger.info("")
 
         # DEBUT DES REQUETES D'INSERTION --------------------------------------------------------------------------------------------------------
-        l.info("DEBUT REQUÊTES INSERTION")
-        l.info("")
+        logger.info("DEBUT REQUÊTES INSERTION")
+        logger.info("")
         
         for i in range(len(data)):
             try:
@@ -95,13 +110,13 @@ class loader:
                         }
                     )
                     cur.execute(sql)
-                    l.info("Requête %d artiste : %s" %(i,sql))
-                    l.info("")
+                    logger.info("Requête %d artiste : %s" %(i,sql))
+                    logger.info("")
 
                 except UnicodeEncodeError as error:
 
-                    l.error(f"Probleme enconding data dans la requête : {error.args[1]}")
-                    #Si un problème d'encodage et raise alors la valeur qui pose probleme sera remplacé par Null
+                    logger.error(f"Probleme enconding data dans la requête : {error.args[1]}")
+                    #Si un problème d'encodage est raise alors la valeur qui pose probleme sera remplacé par Null
                     
                     data[i]["artist"] = "null"
                     sql = loader.insert(
@@ -112,8 +127,8 @@ class loader:
                         }
                     )
                     cur.execute(sql)
-                    l.error("Requête %d artiste avec null : %s" %(i,sql))
-                    l.info("")
+                    logger.error("Requête %d artiste avec null : %s" %(i,sql))
+                    logger.info("")
 
     ############################################## Requête d'insertion table tags ##############################################
 
@@ -127,13 +142,13 @@ class loader:
                     )
                     
                     cur.execute(sql)
-                    l.info("Requête %d tag : %s" %(i,sql))
-                    l.info("")
+                    logger.info("Requête %d tag : %s" %(i,sql))
+                    logger.info("")
 
                 except UnicodeEncodeError as error:
 
                     l.error(f"Probleme enconding data dans la requête : {error.args[1]}")
-                    #Si un problème d'encodage et raise alors la valeur qui pose probleme sera remplacé par Null
+                    #Si un problème d'encodage est raise alors la valeur qui pose probleme sera remplacé par Null
 
                     data[i]["main_tag"] = "null"  
 
@@ -144,8 +159,8 @@ class loader:
                         }
                     )
                     cur.execute(sql)
-                    l.error("Requête %d tag avec Null : %s" %(i,sql))
-                    l.info("")
+                    logger.error("Requête %d tag avec Null : %s" %(i,sql))
+                    logger.info("")
                     
                 for item in data[i]["taglist"].split(","):
                     
@@ -156,12 +171,12 @@ class loader:
                                 "tag_name":f"'{item}'"
                             }
                         )
-                        l.info("Requête %d tag : %s" %(i,sql))
+                        logger.info("Requête %d tag : %s" %(i,sql))
                         cur.execute(sql)
-                        l.info("")
+                        logger.info("")
                     
                     except (UnicodeEncodeError) as error:
-                        l.error(f"Probleme dans la requête :\n {error}")
+                        logger.error(f"Probleme dans la requête :\n {error}")
                         #Si un problème d'encodage et raise alors la valeur qui pose probleme sera remplacé par Null
 
                         sql = loader.insert(
@@ -170,9 +185,9 @@ class loader:
                                 "tag_name":"'null'"
                             }
                         )
-                        l.error("Requête %d tag null : %s" %(i,sql))
+                        logger.error("Requête %d tag null : %s" %(i,sql))
                         cur.execute(sql)
-                        l.info("")
+                        logger.info("")
 
     ############################################## Requête d'insertion table tracks ##############################################
 
@@ -210,14 +225,14 @@ class loader:
                             )
                         }
                     )
-                    l.info("Requête %d track : %s" %(i,sql))
-                    l.info("")
+                    logger.info("Requête %d track : %s" %(i,sql))
+                    logger.info("")
                     cur.execute(sql)
 
                 except UnicodeEncodeError as error:
 
-                    l.error(f"Probleme enconding data dans la requête : {error.args[1]}")
-                    #Si un problème d'encodage et raise alors la valeur qui pose probleme sera remplacé par Null
+                    logger.error(f"Probleme enconding data dans la requête : {error.args[1]}")
+                    #Si un problème d'encodage est raise alors la valeur qui pose probleme sera remplacé par Null
                     
                     sql = loader.insert(
                         "public.tracks",
@@ -241,8 +256,8 @@ class loader:
                         })"""
                     })
                     cur.execute(sql)
-                    l.error("Requête %d track avec null : %s" %(i,sql))
-                    l.info("")
+                    logger.error("Requête %d track avec null : %s" %(i,sql))
+                    logger.info("")
 
     ############################################## Requête d'insertion table tracks_artists ##############################################
 
@@ -263,9 +278,9 @@ class loader:
                         })"""
                     }
                 )
-                l.info("Requête %d tracks_artists : %s" %(i,sql_tracks_artists))
+                logger.info("Requête %d tracks_artists : %s" %(i,sql_tracks_artists))
                 cur.execute(sql_tracks_artists)
-                l.info("")
+                logger.info("")
 
     ############################################## Requête d'insertion table tracks_tags ##############################################
 
@@ -288,24 +303,25 @@ class loader:
                             })"""
                         }
                     )
-                    l.info("Requête %d tracks_tags : %s" %(i,sql_tracks_tags))
-                    l.info("")
+                    logger.info("Requête %d tracks_tags : %s" %(i,sql_tracks_tags))
+                    logger.info("")
                     cur.execute(sql_tracks_tags)
 
                 conn.commit()
-                l.info("Commit")           
-                l.info("")
+                logger.info("Commit")
+                logger.debug(f"nb objets en RAM : {gc.get_count()}")           
+                logger.info("")
             except e.StringDataRightTruncation as error :
-                l.warning(f'{error} | All requests for this tracks rollback')
+                logger.warning(f'{error} | All requests for this tracks rollback')
                 conn.rollback()
                 continue
         
-        l.info("Fin des requête d'insertion")
-        l.info("")
+        logger.info("Fin des requête d'insertion")
+        logger.info("")
         cur.close()
-        l.info("Curseur fermé")
+        logger.info("Curseur fermé")
         conn.close()
-        l.info("Connexion avec la base de données fermée")
-        l.info("")
-        l.info("<<FIN LOADING>>")
+        logger.info("Connexion avec la base de données fermée")
+        logger.info("")
+        logger.info("<<FIN LOADING>>")
         

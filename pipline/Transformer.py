@@ -1,12 +1,29 @@
-import logging as l 
+import logging as l
+import sys 
+import os
+import json
 
-l.basicConfig(filename='pipline/logs/Transformer.log', filemode='w', format='%(asctime)s %(message)s', encoding='UTF-8', level=l.INFO)
+logger = l.getLogger("Transformer")
+logger.setLevel(l.DEBUG)
+formatter = l.Formatter('%(asctime)s | %(levelname)s | %(message)s')
+
+stdout_handler = l.StreamHandler(sys.stdout)
+stdout_handler.setLevel(l.INFO)
+stdout_handler.setFormatter(formatter)
+
+fh = l.FileHandler("/home/devadmin/Pythons_Scripts/MS_DB/SCDashBoard/pipline/logs/Transformer.log", "w")
+fh.mode = 'w'
+fh.setFormatter(formatter)
+
+logger.addHandler(stdout_handler)
+logger.addHandler(fh)
+
 
 # It's a class that transforms data
 class transformer:
     
-    def __init__(self):
-        pass
+    def __init__(self, mode):
+        self.mode = mode
     
     @staticmethod        
     def fixstr(str):
@@ -22,7 +39,7 @@ class transformer:
             return '0000-00-00 00:00:00'
 
     @staticmethod
-    def fixinteger(value):
+    def fixinteger(self, value):
         # sourcery skip: last-if-guard, remove-redundant-slice-index, remove-unnecessary-else, simplify-negative-index, swap-if-else-branches
         if value:
             # determine multiplier
@@ -39,19 +56,19 @@ class transformer:
             return int(float(value) * multiplier)
 
         else:
-            l.info(f'integer {value} = 0')
+            self.logger.info(f'integer {value} = 0')
             return 0
 
     def transformPageSourceToRowData(data):
         # sourcery skip: extract-duplicate-method, instance-method-first-arg-name
-        l.info("")
-        l.info("<<DEBUT TRANSFORMATION>>")
+        logger.info("")
+        logger.info("<<DEBUT TRANSFORMATION>>")
 
-        l.info("Récupération des items contnenant les données...")
+        logger.info("Récupération des items contnenant les données...")
         tracks = data.find_all("li", {"class": "soundList__item"})
 
-        l.info("Transformation des données... ")
-        l.info("")
+        logger.info("Transformation des données... ")
+        logger.info("")
         datas = []
         for track in tracks:
 
@@ -94,17 +111,17 @@ class transformer:
             else:
                 d_data["num_abonnes"] = 0
 
-            l.info("Nouvelle ligne :")
-            l.info(d_data)
-            l.info("")
+            logger.info("Nouvelle ligne :")
+            logger.info(d_data)
+            logger.info("")
 
             datas.append(d_data)
 
-        l.info("<<FIN EXTRACTION>>")
+        logger.info("<<FIN EXTRACTION>>")
 
         return datas
     
-    def transformJSONCollectionToRowData(data):
+    def transformJSONCollectionToRowData(self, datalist):
         
         @staticmethod
         def fixTaglist(str):
@@ -117,12 +134,8 @@ class transformer:
         def fixint(value):
             return 0 if value is None else value
         
-        n = 0
-        datas=[]
-        
-        l.info("<<DEBUT TRANSFORMATION>>")
-        for item in data:
-            n = n + 1
+        @staticmethod
+        def buildRowData(item):
             d_data = {
                 "title": transformer.fixstr(item["title"]),
                 "artist": transformer.fixstr(item["user"]["username"].lower()),
@@ -134,11 +147,34 @@ class transformer:
                 "main_tag": transformer.fixstr(item["genre"]) if item["genre"] != "" else "null",
                 "taglist" : fixTaglist(transformer.fixstr(item["tag_list"])) if item["tag_list"] != "" else "null"
             }
-            l.info(f"Track : {n}\n {d_data}")
-            
-            datas.append(d_data)
-        l.info(f"Nb de requête : {n}")
-        l.info("")
-        l.info("<<FIN TRANSFORMATION>>")
-        l.info("")
+            return d_data
+        
+        n = 0
+        datas=[]
+        
+        logger.info("<<DEBUT TRANSFORMATION>>")
+                
+        if self.mode=="wmf":
+            for file in os.listdir("/home/devadmin/Pythons_Scripts/MS_DB/SCDashBoard/tmp"):
+                with open(f"/home/devadmin/Pythons_Scripts/MS_DB/SCDashBoard/tmp/{file}", "r") as rf :
+                    data = json.load(rf)
+                    for item in data["collection"]:
+                        n = n + 1
+                        logger.debug(f"data[collection] : {item}")
+                        d_data = buildRowData(item)
+                        logger.info(f"Track : {n}\n {d_data}")
+                        datas.append(d_data)
+                logger.info(f"Nb d'item : {n}")
+        else:
+            data = datalist
+            for item in data:
+                n = n + 1
+                d_data = buildRowData(item)
+                logger.info(f"Track : {n}\n {d_data}")
+                datas.append(d_data)
+            logger.info(f"Nb d'item : {n}")
+        
+        logger.info("")
+        logger.info("<<FIN TRANSFORMATION>>")
+        logger.info("")
         return datas

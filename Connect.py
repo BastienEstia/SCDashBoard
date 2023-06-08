@@ -1,7 +1,7 @@
 import psycopg2 as ps
 from configparser import ConfigParser
 
-def config(filename="./database.ini", section="postgresql"):
+def config(filename="/home/devadmin/Pythons_Scripts/MS_DB/SCDashBoard/database.ini", section="postgresql"):
     # sourcery skip: raise-specific-error
     """
     It reads a configuration file and returns a dictionary of the parameters in the specified section
@@ -60,4 +60,6 @@ class connect(ps._psycopg.connection):
             print(f"erreur : {error}")
             return -1
         return conn
-        
+    
+    
+# connect.connection()
