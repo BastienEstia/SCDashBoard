@@ -145,7 +145,7 @@ class extractor:
         
         @staticmethod
         def writeToMultipleFiles(datalist):
-            with open(f"/home/devadmin/Pythons_Scripts/MS_DB/SCDashBoard/tmp/{datetime.now().date()}-Extraction-{self.date_depart}-{self.date_cible}-file_{i}.json", "a") as f:
+            with open(f"/home/devadmin/Pythons_Scripts/MS_DB/SCDashBoard/tmp/{datetime.now().date()}_Extraction_{self.date_depart.split(' ')[0]}_{self.date_cible.split(' ')[0]}_file_{i}.json", "a") as f:
                 json.dump(datalist, f)
         
         n = 0

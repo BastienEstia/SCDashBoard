@@ -16,5 +16,5 @@ New Extractor method named extractByAPI() not using SC API because it's closed b
 Transformer : Handle a transformPageSourceToRowData() method that transform the web source code into a collection of python dictionaries with key/values of tracks.
 New Transformer method named transformJSONCollectionToRowData() that transform JSON tracks into row data with some rectification around data structure.
 
-Loader : Handle a loading() method that insert data from dictionary collection into postgreSQL DB by SQL insert request.
+Loader : Handle a loading() method that insert data from dictionary collection into postgreSQL DB by SQL insert requests.
 
